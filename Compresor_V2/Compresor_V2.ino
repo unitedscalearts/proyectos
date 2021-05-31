@@ -7,25 +7,40 @@
  *  
  */
 
+#include <SPI.h>
+#include <SD.h>
+
+File myFile;
+uint32_t data = 0;
+
+ /* Memoria SD
+ ** MOSI - pin 11
+ ** MISO - pin 12
+ ** CLK - pin 13
+ ** CS - pin 4
+ */
+
+
+
 // Entradas
-#define LLAVE             9
-#define LLAVE_ON          digitalRead(LLAVE)
-#define LLAVE_OFF         !digitalRead(LLAVE)
-#define BUTTON_RESET      8
-#define RESET_PRESIONADO  digitalRead(BUTTON_RESET)
-#define S_MOTOR           7
-#define MOTOR_ANDANDO     !digitalRead(S_MOTOR)
-//#define BUTTON_SERVICE        // Activo Alto?
-//#define SERVICE_PRESIONADO  digitalRead(BUTTON_SERVICE)
+#define BUTTON_SERVICE      10    // Activo Alto?
+#define SERVICE_PRESIONADO  digitalRead(BUTTON_SERVICE)
+#define LLAVE               9
+#define LLAVE_ON            digitalRead(LLAVE)
+#define LLAVE_OFF           !digitalRead(LLAVE)
+#define BUTTON_RESET        8
+#define RESET_PRESIONADO    digitalRead(BUTTON_RESET)
+#define S_MOTOR             7
+#define MOTOR_ANDANDO       !digitalRead(S_MOTOR)
 
 // Salidas
-#define LED_OFF         12
-#define LED_ON          11
-#define CONTACTOR       10
+#define CONTACTOR       5
+#define LED_OFF         3
+#define LED_ON          2
 
 // Tiempos
-#define STOP_TIMEOUT    60000    // (10 min) (1 - 10ms) Tiempo maximo en funcionamiento continuo
-#define SERVICE_TIMEOUT 1080000  // (30 hs) (1 - 10ms) Tiempo maximo de funcionamiento
+#define STOP_TIMEOUT    600    //60000 (10 min) (1 - 10ms) Tiempo maximo en funcionamiento continuo
+#define SERVICE_TIMEOUT 1080  //1080000 (30 hs) (1 - 10ms) Tiempo maximo de funcionamiento
 
 // Variables de estado
 #define INICIO          0
@@ -41,6 +56,8 @@ unsigned long previousMillis = 0;
 const long interval = 10;
 
 void setup() {
+  Serial.begin(9600);
+  pinMode(BUTTON_SERVICE, INPUT);
   pinMode(LLAVE, INPUT);
   pinMode(BUTTON_RESET, INPUT);
   pinMode(S_MOTOR, INPUT);
@@ -53,6 +70,8 @@ void setup() {
 void loop() {
   softTimer();
   update_estado();
+  Serial.print("Estado: ");
+  Serial.println(estado);
 }
 
 
@@ -94,6 +113,10 @@ void update_estado() {
         digitalWrite(LED_OFF, LOW);
         digitalWrite(LED_ON, HIGH);
       }
+      Serial.print("Motor Count: ");
+      Serial.println(motorCount);
+      Serial.print(" Motor Sv: ");
+      Serial.println(motorServiceCount);
       break;
 
    case STOP:
