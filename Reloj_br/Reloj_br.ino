@@ -1,5 +1,5 @@
 // Configuraciones
-#define CLOCK_TIME  10    // segundos por vuelta (450 ~ 7m 30seg)
+#define CLOCK_TIME  40    // segundos por vuelta (450 ~ 7m 30seg)
 #define STEPS       2048
 
 // Entradas
@@ -11,38 +11,49 @@
 #define OUT3 9
 #define OUT4 6
 
+// Variables de Estado
+#define CLOCK 1
+#define SET 2
+
 // Variables Globales
+uint8_t state = CLOCK;
 uint32_t timer2_count = 0;
-uint32_t step_del = 10;    // 1 -> 1ms
+uint32_t step_del = 5;    // 1 -> 1ms
+uint32_t step_del_h = 5;
 boolean timer2_flag = false;
-uint32_t steps_buff = 2048;
+//uint32_t steps_buff = 2048;
 boolean sensor_flag = false;
-uint32_t count = 0;
+uint32_t step_pos = 0;
 boolean init_flag = true;
 
 void pin_init();
 void timer2_init();
 void motorStep();
+boolean motorSet( uint32_t set_pos);
 
 void setup() {
   pin_init();
   timer2_init();
   Serial.begin(9600);
   Serial.println("Comienzo..");
-  step_del = (uint32_t) ((CLOCK_TIME*1000)/STEPS);
-  while(digitalRead(SENSOR)) {
+  
+  // Salgo del rango del sensor
+  while(digitalRead(SENSOR)) { 
     if(timer2_flag) {
-      count++;
+      //step_pos++;
       timer2_flag = false;
       motorStep();
     }    
   }
+  //
+  
+  // Hasta que no lo detecte de nuevo no empiezo el programa
   while (init_flag) {
     if(digitalRead(SENSOR) && !sensor_flag) {
       sensor_flag = true;
-      if(count > 0) {
+      if(step_pos > 0) {
         Serial.print("Pos ant: ");
-        Serial.print(count);
+        Serial.print(step_pos);
         Serial.print(" ");
         Serial.println("pasos");
         init_flag = false;
@@ -52,36 +63,54 @@ void setup() {
       sensor_flag = false;
     }
     if(timer2_flag) {
-      count++;
+      //step_pos++;
       timer2_flag = false;
       motorStep();
     }
   }
+  //
+  
   Serial.println("Ready, en posicion 0");
+  step_del_h = (uint32_t) ((CLOCK_TIME*1000)/STEPS);
+  step_del = step_del_h;
+
 }
 
 void loop() {
-  /*if(timer2_flag) {
+  if(timer2_flag) {
     timer2_flag = false;
     motorStep();
-  }*/
+  }
 }
 
+const boolean fStep1 [4] = {HIGH, HIGH, LOW,  LOW};
+const boolean fStep2 [4] = {LOW,  LOW,  HIGH, HIGH};
+const boolean fStep3 [4] = {HIGH, LOW,  LOW,  HIGH};
+const boolean fStep4 [4] = {LOW,  HIGH, HIGH, LOW};
+uint8_t fPos = 0;
+
 void motorStep() {
-  const boolean fStep1 [4] = {HIGH, HIGH, LOW, LOW};
-  const boolean fStep2 [4] = {LOW, LOW, HIGH, HIGH};
-  const boolean fStep3 [4] = {HIGH, LOW, LOW, HIGH};
-  const boolean fStep4 [4] = {LOW, HIGH, HIGH, LOW};
-  static uint8_t fPos = 0;
-  //if(!steps_buff) return;
-  //steps_buff--;
   digitalWrite(OUT1, fStep1[fPos]);
   digitalWrite(OUT2, fStep2[fPos]);
   digitalWrite(OUT3, fStep3[fPos]);
   digitalWrite(OUT4, fStep4[fPos]);
+  step_pos++;
   fPos++;
   fPos%=4;
 }
+/*
+boolean motorSet(uint32_t set_pos) {
+  //step_del = 5;
+  if(step_pos == set_pos) return true;
+  digitalWrite(OUT1, fStep1[fPos]);
+  digitalWrite(OUT2, fStep2[fPos]);
+  digitalWrite(OUT3, fStep3[fPos]);
+  digitalWrite(OUT4, fStep4[fPos]);
+  step_pos++;
+  fPos++;
+  fPos%=4;
+  return false;
+}*/
 
 void pin_init() {
   pinMode(OUT1, OUTPUT);
