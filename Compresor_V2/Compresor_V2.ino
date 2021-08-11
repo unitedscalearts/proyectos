@@ -24,23 +24,23 @@ const int rs = 10, en = 9, d4 = 8, d5 = 7, d6 = 6, d7 = 5;
 LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
 
 // Entradas
-#define BUTTON_SERVICE      A3
+#define BUTTON_SERVICE      A3                            // Boton que reinicia la cuenta del service
 #define SERVICE_PRESIONADO  digitalRead(BUTTON_SERVICE)
-#define LLAVE               A1
+#define LLAVE               A1                            // Llave que apaga/enciende el programa
 #define LLAVE_ON            digitalRead(LLAVE)
 #define LLAVE_OFF           !digitalRead(LLAVE)
-#define BUTTON_RESET        A2
+#define BUTTON_RESET        A2                            // Boton que reinicia la cuenta del funcionamiento continuo
 #define RESET_PRESIONADO    digitalRead(BUTTON_RESET)
-#define S_MOTOR             A0
+#define S_MOTOR             A0                            // Signal que se recibe del compresor cuando esta en funcionamiento
 #define MOTOR_ANDANDO       !digitalRead(S_MOTOR)
-#define S_POWER             A4
+#define S_POWER             A4                            // Signal que se recibe de la tension de alimentacion (para poder hacer un ultimo guardado sin problemas)
 #define POWER_ON            digitalRead(S_POWER)
 
 // Salidas
-#define BACKLIGHT       3
-#define CONTACTOR       2
-#define LED_OFF         1
-#define LED_ON          0
+#define BACKLIGHT       3                                 // Luz backlight del LCD 16x2
+#define CONTACTOR       2                                 // Contactor que habilita al compresor funcionar
+#define LED_OFF         1                                 // Led indicador de apagado
+#define LED_ON          0                                 // Led indicador de encendido
 
 // Tiempos
 #define STOP_TIMEOUT    600000    //600000 (10 min) (1 - 1ms) Tiempo maximo en funcionamiento continuo
