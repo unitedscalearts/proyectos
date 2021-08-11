@@ -1,6 +1,6 @@
 /*  
  *  Programa: Compresor de aire
- *  Version: 2.0
+ *  Version: 2.1
  *  
  *  Descripcion: Control de compresor con corte por funcionamiento continuo o mantenimiento.
  *  Interfaz con LCD 16x2 y uso de memoria SD.
