@@ -85,6 +85,9 @@ void setup() {
   pinMode(CONTACTOR, OUTPUT);
   pinMode(BACKLIGHT, OUTPUT);
   digitalWrite(BACKLIGHT, HIGH);
+  digitalWrite(LED_OFF, HIGH);
+  digitalWrite(LED_ON, LOW);
+  digitalWrite(CONTACTOR, LOW);
   lcd.setCursor(0,1);
   lcd.print("Iniciando SD... ");
   delay(1000);
@@ -97,44 +100,129 @@ void setup() {
     lcd.setCursor(0,1);
     lcd.print("la SD...");
     while(1);
-    }
+  }
 
-  // Si ya existe el archivo
-  if (SD.exists("comp.txt")) {
-    myFile = SD.open("comp.txt");
+  uint32_t comp1 = 0, comp2 = 0;
+  boolean arch_status1 = false, arch_status2 = false;
+  // Si ya existe el archivo 1
+  if (SD.exists("comp1.txt")) {
+    arch_status1 = true;
+    myFile = SD.open("comp1.txt");
     if(myFile) {
       while(myFile.available()) {
-        myFile.read((byte *) &motorServiceCount, 4);
+        myFile.read((byte *) &comp1, 4);
         break;
       }
       myFile.close();
     }
     else {
       lcd.setCursor(0,0);
-      lcd.print("Error al ABRIR");
+      lcd.print("Error al ABRIR 1");
       lcd.setCursor(0,1);
       lcd.print("el archivo en SD");
       while(1);
     }
   }
-
-  // Si no existe el archivo, crearlo
-  else {
-    myFile = SD.open("comp.txt", FILE_WRITE);
+  // Si ya existe el archivo 2
+  if (SD.exists("comp2.txt")) {
+    arch_status2 = true;
+    myFile = SD.open("comp2.txt");
     if(myFile) {
-      myFile.seek(0);
+      while(myFile.available()) {
+        myFile.read((byte *) &comp2, 4);
+        break;
+      }
+      myFile.close();
+    }
+    else {
+      lcd.setCursor(0,0);
+      lcd.print("Error al ABRIR 2");
+      lcd.setCursor(0,1);
+      lcd.print("el archivo en SD");
+      while(1);
+    }
+  }
+  
+  if(arch_status1 && arch_status2) {         // Comprobar que no haya error entre los archivos, tomar el mayor como valido
+    if(comp1>=comp2) {
+      if( (comp1-comp2) > 15000) {  // 15000 -> 15 seg de dif
+        
+      }
+      else motorServiceCount = comp1;
+    }
+    else if (comp1<comp2) {
+      if( (comp2-comp1) > 15000) {
+        
+      }
+      else motorServiceCount = comp2;
+    }
+  }
+  else if(arch_status1 && !arch_status2) {   // Autotest: Si existe el 1 pero no el 2, error que paso con el 2?
+    
+  }
+  else if(!arch_status1 && arch_status2) {   // Autotest: Si existe el 2 pero no el 1, error que paso con el 1?
+      lcd.setCursor(0,0);
+      lcd.print("Falta archivo 1 - Service = continuar");
+      lcd.setCursor(0,1);
+      lcd.print("Go? Serv ");
+      lcd.print((uint32_t)((SERVICE_TIMEOUT-comp2)/3600000));
+      lcd.print("h ");
+      lcd.print((uint32_t)(((SERVICE_TIMEOUT-comp2)%3600000)/60000));
+      lcd.print("m ");
+      lcd.print((uint32_t)(((SERVICE_TIMEOUT-comp2)%60000)/1000));
+      lcd.print("s");
+      lcd.print(" - Reset = reiniciar");
+      while(1) {
+        if(SERVICE_PRESIONADO) {
+          motorServiceCount = comp2;
+          break;
+        }
+        else if (RESET_PRESIONADO) {
+          motorServiceCount = 0;
+          break;
+        }
+        lcd.scrollDisplayLeft();
+        delay(500);
+      }
+  }
+  lcd.clear();
+  lcd.setCursor(0,0);
+  lcd.print("    OK    ");    
+  while(1) {
+  }
+
+  // Si no existe el archivo 1, crearlo
+  if (!arch_status1) {
+    myFile = SD.open("comp1.txt", FILE_WRITE);
+    if(myFile) {
       myFile.write((byte *) &motorServiceCount, 4);
       myFile.close();
     }
     else {
       lcd.setCursor(0,0);
-      lcd.print("Error al CREAR");
+      lcd.print("Error al CREAR 1");
       lcd.setCursor(0,1);
       lcd.print("el archivo en SD");      
       while(1);
     }
   }
 
+  // Si no existe el archivo 2, crearlo
+  if (!arch_status2) {
+    myFile = SD.open("comp2.txt", FILE_WRITE);
+    if(myFile) {
+      myFile.write((byte *) &motorServiceCount, 4);
+      myFile.close();
+    }
+    else {
+      lcd.setCursor(0,0);
+      lcd.print("Error al CREAR 2");
+      lcd.setCursor(0,1);
+      lcd.print("el archivo en SD");      
+      while(1);
+    }    
+  }
+  
 }
 
 
