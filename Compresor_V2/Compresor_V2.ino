@@ -1,10 +1,11 @@
 /*  
  *  Programa: Compresor de aire
- *  Version: 2.2
+ *  Version: 2.3
  *  
  *  Descripcion: Control de compresor con corte por funcionamiento continuo o mantenimiento.
  *  Interfaz con LCD 16x2 y uso de memoria SD.
  *  
+ *  Notas: Los archivos para la sd tienen que nombrarse en formato 8.3 (nombre max 8 caracteres y extension max 3 caracteres)
  */
 
 #include <SPI.h>
@@ -33,8 +34,8 @@ LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
 #define RESET_PRESIONADO    digitalRead(BUTTON_RESET)
 #define S_MOTOR             A0                            // Signal que se recibe del compresor cuando esta en funcionamiento
 #define MOTOR_ANDANDO       !digitalRead(S_MOTOR)
-#define S_POWER             A4                            // Signal que se recibe de la tension de alimentacion (para poder hacer un ultimo guardado sin problemas)
-#define POWER_ON            digitalRead(S_POWER)
+//#define S_POWER             A4                            // Signal que se recibe de la tension de alimentacion (para poder hacer un ultimo guardado sin problemas)
+//#define POWER_OFF           analogRead(S_POWER) < 950
 
 // Salidas
 #define BACKLIGHT       3                                 // Luz backlight del LCD 16x2
@@ -71,13 +72,14 @@ uint32_t motorServiceCount = 0;
 
 
 void setup() {
+  //Serial.begin(9600);
   lcd.begin(16, 2);
   lcd.print("Iniciando LCD... ");
   pinMode(BUTTON_SERVICE, INPUT);
   pinMode(LLAVE, INPUT);
   pinMode(BUTTON_RESET, INPUT);
   pinMode(S_MOTOR, INPUT);
-  pinMode(S_POWER, INPUT);
+  //pinMode(S_POWER, INPUT);
   pinMode(LED_OFF, OUTPUT);
   pinMode(LED_ON, OUTPUT);
   pinMode(CONTACTOR, OUTPUT);
@@ -91,15 +93,15 @@ void setup() {
   // Si no se pudo inicializar la SD
   if (!SD.begin(4)) { 
     lcd.setCursor(0,0);
-    lcd.print("Error al iniciar");
+    lcd.print("Error al INICIAR");
     lcd.setCursor(0,1);
     lcd.print("la SD...");
     while(1);
     }
 
   // Si ya existe el archivo
-  if (SD.exists("test.txt")) {
-    myFile = SD.open("test.txt");
+  if (SD.exists("comp.txt")) {
+    myFile = SD.open("comp.txt");
     if(myFile) {
       while(myFile.available()) {
         myFile.read((byte *) &motorServiceCount, 4);
@@ -109,16 +111,16 @@ void setup() {
     }
     else {
       lcd.setCursor(0,0);
-      lcd.print("Error al abrir");
+      lcd.print("Error al ABRIR");
       lcd.setCursor(0,1);
-      lcd.print("el archivo .txt");
+      lcd.print("el archivo en SD");
       while(1);
     }
   }
 
   // Si no existe el archivo, crearlo
   else {
-    myFile = SD.open("test.txt", FILE_WRITE);
+    myFile = SD.open("comp.txt", FILE_WRITE);
     if(myFile) {
       myFile.seek(0);
       myFile.write((byte *) &motorServiceCount, 4);
@@ -126,9 +128,9 @@ void setup() {
     }
     else {
       lcd.setCursor(0,0);
-      lcd.print("Error al crear");
+      lcd.print("Error al CREAR");
       lcd.setCursor(0,1);
-      lcd.print("el archivo .txt");      
+      lcd.print("el archivo en SD");      
       while(1);
     }
   }
@@ -168,8 +170,46 @@ void softTimer() {
 void update_estado() {
   static uint16_t ledCount = 0;
   static uint32_t motorCount = 0;
+
   if (!timer_flag) return;
   timer_flag = false;
+
+  /*static boolean power_flag = true;
+  if(POWER_OFF) {
+    if(power_flag) return;
+    digitalWrite(BACKLIGHT, LOW);
+    digitalWrite(CONTACTOR, LOW);
+    digitalWrite(LED_OFF, LOW);
+    digitalWrite(LED_ON, LOW);
+    myFile = SD.open("comp.txt", O_WRITE);
+    if(myFile) {
+      myFile.write((byte *) &motorServiceCount, 4);
+      myFile.close();
+      lcd.setCursor(0,0);
+      lcd.print("BAJO VOLTAGE");
+      lcd.setCursor(0,1);
+      lcd.print("Datos Guardados");
+      analogWrite(BACKLIGHT, 180);
+      digitalWrite(LED_OFF, HIGH);
+    }
+    else {
+      lcd.setCursor(0,0);
+      lcd.print("Error al ABRIR");
+      lcd.setCursor(0,1);
+      lcd.print("el archivo en SD");
+      digitalWrite(BACKLIGHT, HIGH);
+      digitalWrite(CONTACTOR, LOW);
+      digitalWrite(LED_OFF, HIGH);
+      digitalWrite(LED_ON, LOW);
+      while(1);
+    }
+    power_flag = false;
+    return;
+  }
+  else {
+    power_flag = true;
+  }*/
+
   
   switch(estado) {
 
@@ -299,10 +339,11 @@ void update_estado() {
       break;
   }
 
+
   // Guardado de datos en SD
   if(timer_sd_flag) {
     timer_sd_flag = false;
-    myFile = SD.open("test.txt", O_WRITE);
+    myFile = SD.open("comp.txt", O_WRITE);
     if(myFile) {
       myFile.seek(0);
       myFile.write((byte *) &motorServiceCount, 4);
@@ -310,9 +351,9 @@ void update_estado() {
     }
     else {
       lcd.setCursor(0,0);
-      lcd.print("Error al abrir");
+      lcd.print("Error al ABRIR");
       lcd.setCursor(0,1);
-      lcd.print("el archivo .txt");
+      lcd.print("el archivo en SD");
       digitalWrite(BACKLIGHT, HIGH);
       digitalWrite(CONTACTOR, LOW);
       digitalWrite(LED_OFF, HIGH);
@@ -320,6 +361,7 @@ void update_estado() {
       while(1);
     }
   }
+
 
   // Debounce con delay de boton de servicio
   if(SERVICE_PRESIONADO && !service_flag) {
