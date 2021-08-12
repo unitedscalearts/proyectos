@@ -1,40 +1,32 @@
 /*
- * Notas: 1 vuelta de minutos = 10 segundos (1h reloj -> 10s tiempo real) (Velocidad MAXIMA)
- * 24h reloj = 120 seg tiempo real
+ * Notas: 1h reloj -> 4,096s tiempo real (Velocidad MAXIMA)
  * 
  * min -> 2048 pasos/vuelta
  * h -> 1024 pasos/vuelta
  * 2ms/paso -> 1h reloj = 4,096 seg tiempo real
- * 24h reloj = 98,304 seg = 1m 38,304seg (aprox)
+ * 24h reloj = 98,304 seg = 1m 38,304seg (aprox) (Velocidad MAXIMA)
  */
 
-// Ajuste
-#define CLOCK_DEL   1     // Delay del reloj 1 -> 98,3 seg/dia, 2 -> 196,6 seg/dia (aprox)
-
 // Configuraciones
-#define CLOCK_TIME  40    // segundos por vuelta (450 ~ 7m 30seg)
-#define STEPS       2048
+#define CLOCK_DEL   8     // Delay del reloj 1 -> 98,3 seg/dia, 2 -> 196,6 seg/dia (aprox)
 
 // Entradas
-#define SENSOR 12
+#define SENSOR_HOUR 12
+#define SENSOR_MIN 7
 
-/////////////
-// Salidas //
-/////////////
-
+// Salidas
 // Horas
 #define OUT1 11   // IN1
 #define OUT2 10   // IN2
 #define OUT3 9    // IN3
 #define OUT4 8    // IN4
-
 // Minutos
 #define OUT5 6   // IN1
 #define OUT6 5   // IN2
 #define OUT7 4   // IN3
 #define OUT8 3   // IN4
 
-// Opciones paso a paso
+// Control paso a paso
 #define CLOCK 0
 #define COUNTER_CLOCK 1
 #define HOUR 0
@@ -42,62 +34,51 @@
 
 // Variables Globales
 uint32_t timer2_count = 0;
-uint32_t step_del_m = 2;    // 1 -> 1ms
-uint32_t step_del_h = 2;
+uint32_t step_del = 2;    // 1 -> 1ms
 boolean timer2_flag = false;
-//uint32_t steps_buff = 2048;
-boolean sensor_flag = false;
-uint32_t step_pos = 0;
-boolean init_flag = true;
 
 void pin_init();
 void timer2_init();
-void motorStep();
-boolean motorSet( uint32_t set_pos);
+void motorStep(boolean motorSel, boolean motorDir, uint32_t clock_del);
 
 void setup() {
   pin_init();
   timer2_init();
   Serial.begin(9600);
   Serial.println("Comienzo..");
+
 /*
-  // Salgo del rango del sensor
-  while(digitalRead(SENSOR)) { 
+  // Buscando el punto 0 v2.0 (eliminando la histeresis del sensor)
+
+  // 1 - Salgo del rango del sensor
+  while(digitalRead(SENSOR_MIN) || digitalRead(SENSOR_HOUR)) { 
     if(timer2_flag) {
-      //step_pos++;
-      timer2_flag = false;
-      motorStep();
-    }    
-  }
-  //
-  
-  // Hasta que no lo detecte de nuevo no empiezo el programa
-  while (init_flag) {
-    if(digitalRead(SENSOR) && !sensor_flag) {
-      sensor_flag = true;
-      if(step_pos > 0) {
-        Serial.print("Pos ant: ");
-        Serial.print(step_pos);
-        Serial.print(" ");
-        Serial.println("pasos");
-        init_flag = false;
+      if(digitalRead(SENSOR_MIN)) {
+        motorStep(MIN,COUNTER_CLOCK,1);
       }
-    }
-    if(!digitalRead(SENSOR) && sensor_flag) {
-      sensor_flag = false;
-    }
-    if(timer2_flag) {
-      //step_pos++;
+      if(digitalRead(SENSOR_HOUR)) {
+        motorStep(HOUR,COUNTER_CLOCK,1);
+      }
       timer2_flag = false;
-      motorStep();
     }
   }
-  
+
+  // 2 - Busco nuevamente el sensor
+  while(!digitalRead(SENSOR_MIN) || !digitalRead(SENSOR_HOUR)) {
+    if(timer2_flag) {
+      if(!digitalRead(SENSOR_MIN)) {
+        motorStep(MIN,CLOCK,1);
+      }
+      if(!digitalRead(SENSOR_HOUR)) {
+        motorStep(HOUR,CLOCK,1);
+      }
+      timer2_flag = false;
+    }
+  }
+
+  // 3 - Ready, informo
   Serial.println("Ready, en posicion 0");
-  *///step_del_h = (uint32_t) ((CLOCK_TIME*1000)/STEPS);
-  //step_del_m = step_del_h;
-  //Serial.println(step_del_m);
-  
+*/
 }
 
 void loop() {
@@ -152,7 +133,6 @@ void motorStep(boolean motorSel, boolean dirSel, uint32_t clock_del) {
     digitalWrite(OUT7, fStep3[pos_min]);
     digitalWrite(OUT8, fStep4[pos_min]);
   }
-  step_pos++;
 }
 
 
@@ -165,7 +145,8 @@ void pin_init() {
   pinMode(OUT6, OUTPUT);
   pinMode(OUT7, OUTPUT);
   pinMode(OUT8, OUTPUT);
-  pinMode(SENSOR, INPUT);
+  pinMode(SENSOR_HOUR, INPUT);
+  pinMode(SENSOR_MIN, INPUT);
 }
 
 void timer2_init() {
@@ -179,7 +160,7 @@ void timer2_init() {
 
 ISR(TIMER2_OVF_vect) {
   timer2_count++;
-  if (timer2_count >= step_del_m) {
+  if (timer2_count >= step_del) {
     timer2_flag = true;
     timer2_count = 0;
   }
