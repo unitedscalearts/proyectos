@@ -2,6 +2,10 @@
  *  Programa: Compresor de aire
  *  Version: 2.4
  *  
+ *  Autor: Ezequiel Ledesma
+ *  Fecha: 13/08/2021
+ *  Empresa: United Scale Arts
+ *  
  *  Descripcion: Control de compresor con corte por funcionamiento continuo o mantenimiento.
  *  Interfaz con LCD 16x2 y uso de memoria SD.
  *  
@@ -20,6 +24,7 @@
  *  4 - Cada 10 segundos, se guarda la cuenta del Service intercaladamente entre archivo 1 y 2, comprobando que la sd siga estando
  *  4.a Si la SD no esta, el programa se frena y espera a que se introduzca una
  *  4.b Al introducir nuevamente la SD, comprueba como en 2 (comprobacion de SD y archivos) pero teniendo en cuenta que la ultima cuenta que no llego a guardarse es la valida
+ *  
  */
 
 #include <SPI.h>
