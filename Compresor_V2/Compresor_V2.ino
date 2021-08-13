@@ -21,7 +21,7 @@
  *  3.a Si el compresor funciona mas de 10 minutos, se necesita presionar el boton RESET para seguir.
  *  3.b Si el compresor supera el tiempo de Service, se para el programa hasta mantener el boton SERVICE por mas de 2 segundos
  *  3.c En todo momento, al presionar el boton SERVICE por mas de 2 segundos reinicia dicha cuenta y reinicia ambos archivos en SD
- *  4 - Cada 10 segundos, se guarda la cuenta del Service intercaladamente entre archivo 1 y 2, comprobando que la sd siga estando
+ *  4 - Cada 10 segundos (si el motor esta andando) o si el motor pasa de andando a parado o si se apaga la llave, se guarda la cuenta del Service intercaladamente entre archivo 1 y 2, comprobando que la sd siga estando
  *  4.a Si la SD no esta, el programa se frena y espera a que se introduzca una
  *  4.b Al introducir nuevamente la SD, comprueba como en 2 (comprobacion de SD y archivos) pero teniendo en cuenta que la ultima cuenta que no llego a guardarse es la valida
  *  
@@ -44,10 +44,10 @@ const int rs = 10, en = 9, d4 = 8, d5 = 7, d6 = 6, d7 = 5;
 LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
 
 // Entradas
-#define BUTTON_SERVICE      A3               // Boton que reinicia la cuenta del service
-#define LLAVE               A1               // Llave que apaga/enciende el programa
-#define BUTTON_RESET        A2               // Boton que reinicia la cuenta del funcionamiento continuo
-#define S_MOTOR             A0               // Signal que se recibe del compresor cuando esta en funcionamiento
+#define BUTTON_SERVICE      A0               // Boton que reinicia la cuenta del service
+#define LLAVE               A2               // Llave que apaga/enciende el programa
+#define BUTTON_RESET        A1               // Boton que reinicia la cuenta del funcionamiento continuo
+#define S_MOTOR             A3               // Signal que se recibe del compresor cuando esta en funcionamiento
 
 // Salidas
 #define BACKLIGHT       3                    // Luz backlight del LCD 16x2
@@ -91,7 +91,7 @@ boolean service_flag = false;                 // Flag para resetear service en c
 uint32_t service_delay = 0;                   // Contador para resetear el service en caso de mantener el boton presionado
 uint32_t motorCount = 0;                      // Variable usada para llevar la cuenta del funcionamiento continuo
 uint32_t motorServiceCount = 0;               // Variable usada para llevar la cuenta del Service
-
+boolean motor_andando_flag = false;           // Flag para guardar cuando el motor pase de andando a parado
 
 // Funciones
 void pin_init();
@@ -99,6 +99,7 @@ boolean load_sd();
 void softTimer();
 void update_estado();
 void save_sd();
+
 
 void setup() {
   lcd.begin(16, 2);
@@ -157,22 +158,30 @@ void update_estado() {
 
     // Compresor andando normalmente, contando el tiempo de service y controlando que no supere el tiempo maximo de funcionamiento continuo
     case REPOSO:
-      if (LLAVE_OFF) estado = OFF;
-      else if (motorServiceCount >= SERVICE_TIMEOUT) estado = SERVICE;
-      else if (motorCount >= STOP_TIMEOUT) estado = STOP;
+      if (LLAVE_OFF) {
+        save_sd();
+        estado = OFF;
+      }
+      else if (motorServiceCount >= SERVICE_TIMEOUT) {
+        save_sd();
+        estado = SERVICE;
+      }
+      else if (motorCount >= STOP_TIMEOUT) {
+        save_sd();
+        estado = STOP;
+      }
       else {
         if (MOTOR_ANDANDO) {
+          motor_andando_flag = true;
           motorCount+=fix;
           motorServiceCount+=fix;
           fix=0;
-          //motorCount++;
-          //motorServiceCount++;
         }
         else motorCount = 0;
         digitalWrite(CONTACTOR, HIGH);
         digitalWrite(LED_OFF, LOW);
         digitalWrite(LED_ON, HIGH);
-      }      
+      }
       if(!timer_display_flag) break;
       timer_display_flag = false;
       lcd.setCursor(0, 0);
@@ -268,6 +277,8 @@ void update_estado() {
       lcd.print("                ");
       lcd.setCursor(0, 1);
       lcd.print("                ");
+      timer_sd_flag = false;
+      service_flag = false;
       break;
 
    default:
@@ -275,7 +286,11 @@ void update_estado() {
       break;
   }
 
-  save_sd();
+  if( (timer_sd_flag && MOTOR_ANDANDO) || (!MOTOR_ANDANDO && motor_andando_flag) ) {
+    motor_andando_flag = false;
+    timer_sd_flag = false;
+    save_sd();
+  }
 
   // Debounce con delay de boton de servicio
   if(SERVICE_PRESIONADO && !service_flag) {
@@ -292,7 +307,6 @@ void update_estado() {
     digitalWrite(LED_ON, HIGH);
     for(uint8_t i = 0; i < 2; i++) {
       save_sd();
-      timer_sd_flag = true;
     }
   }
   if (!SERVICE_PRESIONADO && service_flag) {
@@ -303,34 +317,31 @@ void update_estado() {
 
 void save_sd() {
   // Guardado de datos en SD
-  if(timer_sd_flag) {
-    timer_sd_flag = false;
-    if(arch_flag) {
-      arch_flag = false;
-      myFile = SD.open("comp1.txt", O_WRITE);
-    }
-    else {
-      arch_flag = true;
-      myFile = SD.open("comp2.txt", O_WRITE);
-    }
-    if(myFile) {
-      myFile.write((byte *) &motorServiceCount, 4);
-      myFile.close();
-    }
-    else {
-      lcd.setCursor(0,0);
-      lcd.print("Error GUARDANDO");
-      lcd.setCursor(0,1);
-      lcd.print("el archivo en SD");
-      digitalWrite(BACKLIGHT, HIGH);
-      digitalWrite(CONTACTOR, LOW);
-      digitalWrite(LED_OFF, HIGH);
-      digitalWrite(LED_ON, LOW);
-      motorCount = 0;
-      delay(400);
-      while(!load_sd());
-      previousMillis = millis();
-    }
+  if(arch_flag) {
+    arch_flag = false;
+    myFile = SD.open("comp1.txt", O_WRITE);
+  }
+  else {
+    arch_flag = true;
+    myFile = SD.open("comp2.txt", O_WRITE);
+  }
+  if(myFile) {
+    myFile.write((byte *) &motorServiceCount, 4);
+    myFile.close();
+  }
+  else {
+    lcd.setCursor(0,0);
+    lcd.print("Error GUARDANDO");
+    lcd.setCursor(0,1);
+    lcd.print("el archivo en SD");
+    digitalWrite(BACKLIGHT, HIGH);
+    digitalWrite(CONTACTOR, LOW);
+    digitalWrite(LED_OFF, HIGH);
+    digitalWrite(LED_ON, LOW);
+    motorCount = 0;
+    delay(400);
+    while(!load_sd());
+    previousMillis = millis();
   }
 }
 
@@ -519,6 +530,7 @@ boolean load_sd() {
   delay(500);
   return true;
 }
+
 
 void pin_init() {
   pinMode(BUTTON_SERVICE, INPUT);
