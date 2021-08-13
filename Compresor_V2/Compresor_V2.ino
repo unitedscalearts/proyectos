@@ -1,6 +1,6 @@
 /*  
  *  Programa: Compresor de aire
- *  Version: 2.4
+ *  Version: 2.5 (Final v1.0)
  *  
  *  Autor: Ezequiel Ledesma
  *  Fecha: 13/08/2021
@@ -245,7 +245,6 @@ void update_estado() {
       if (LLAVE_OFF) estado = OFF;
       if(text_flash) {
         digitalWrite(BACKLIGHT, LOW);
-        lcd.clear();
         break;
       }
       digitalWrite(BACKLIGHT, HIGH);
@@ -261,7 +260,6 @@ void update_estado() {
 
    // Si la llave esta apagada
    case OFF:
-      //digitalWrite(BACKLIGHT, LOW);
       analogWrite(BACKLIGHT,10);
       digitalWrite(CONTACTOR, LOW);
       digitalWrite(LED_OFF, HIGH);
@@ -399,12 +397,8 @@ boolean load_sd() {
     }
   }
 
-  if(motorServiceCount >= comp1 && motorServiceCount >=comp2) {
-    lcd.clear();
-    digitalWrite(BACKLIGHT, HIGH);
-    delay(500);
-    return true;
-  }
+  if(arch_status1 && (motorServiceCount > comp1)) comp1 = motorServiceCount;
+  if(arch_status2 && (motorServiceCount > comp1)) comp2 = motorServiceCount;
 
   if(arch_status1 && arch_status2) {         // Comprobar que no haya error entre los archivos, tomar el mayor como valido
     if(comp1 > SERVICE_TIMEOUT) comp1 = 0;
