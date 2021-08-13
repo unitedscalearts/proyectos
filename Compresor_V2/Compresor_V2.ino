@@ -16,7 +16,7 @@
  *  2 - Comprueba SD y archivos
  *  2.a Si no hay sd, espera a que se introduzca una
  *  2.b Si falta uno de los dos archivos, muestra por lcd lo que tiene guardado y da opciones de borrar todo o seguir con ese y crear el archivo que falte
- *  2.c Si existe mucha diferencia con los datos guardados, los muestra por lcd y da opciones de cual tomar como valido
+ *  2.c Si existe mucha diferencia con los datos guardados (mas de 15 segundos), los muestra por lcd y da opciones de cual tomar como valido
  *  3 - Programa listo para usar
  *  3.a Si el compresor funciona mas de 10 minutos, se necesita presionar el boton RESET para seguir.
  *  3.b Si el compresor supera el tiempo de Service, se para el programa hasta mantener el boton SERVICE por mas de 2 segundos
@@ -87,6 +87,7 @@ const long interval = 10;                     // Ticks del Timer por software (1
 uint32_t fix = 0;                             // Variable para fixear cuenta de stop y service (para tener en cuenta el tiempo que se pierde guardando en sd o escribiendo LCD, y no se atrase)
 #define DISPLAY_REFRESH 1000/interval         // Cada cuantos segundos se refresca el diplay
 #define SD_REFRESH 10000/interval             // Cada cuantos segundos se guarda la cuenta de Service en SD
+#define SERVICE_DELAY 2000/interval           // Cuantos segundos hay que mantener el boton Service para reiniciar la cuenta
 boolean service_flag = false;                 // Flag para resetear service en caso de mantener el boton presionado
 uint32_t service_delay = 0;                   // Contador para resetear el service en caso de mantener el boton presionado
 uint32_t motorCount = 0;                      // Variable usada para llevar la cuenta del funcionamiento continuo
@@ -295,7 +296,7 @@ void update_estado() {
   // Debounce con delay de boton de servicio
   if(SERVICE_PRESIONADO && !service_flag) {
     service_flag = true;
-    service_delay = 2000/interval;
+    service_delay = SERVICE_DELAY;
   }
   else if (SERVICE_PRESIONADO && service_flag && !service_delay) {
     estado = INICIO;
