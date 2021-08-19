@@ -44,16 +44,16 @@ const int rs = 10, en = 9, d4 = 8, d5 = 7, d6 = 6, d7 = 5;
 LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
 
 // Entradas
-#define BUTTON_SERVICE      A0               // Boton que reinicia la cuenta del service
+#define BUTTON_SERVICE      A5               // Boton que reinicia la cuenta del service
 #define LLAVE               A2               // Llave que apaga/enciende el programa
-#define BUTTON_RESET        A1               // Boton que reinicia la cuenta del funcionamiento continuo
-#define S_MOTOR             A3               // Signal que se recibe del compresor cuando esta en funcionamiento
+#define BUTTON_RESET        A3               // Boton que reinicia la cuenta del funcionamiento continuo
+#define S_MOTOR             A4               // Signal que se recibe del compresor cuando esta en funcionamiento
 
 // Salidas
 #define BACKLIGHT       3                    // Luz backlight del LCD 16x2
 #define CONTACTOR       2                    // Contactor que habilita al compresor funcionar
-#define LED_OFF         1                    // Led indicador de apagado
-#define LED_ON          0                    // Led indicador de encendido
+#define LED_OFF         A1                   // Led indicador de apagado
+#define LED_ON          A0                   // Led indicador de encendido
 
 // Macros
 #define MOTOR_ANDANDO       !digitalRead(S_MOTOR)
