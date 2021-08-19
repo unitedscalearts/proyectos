@@ -61,6 +61,8 @@ LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
 #define LLAVE_ON            digitalRead(LLAVE)
 #define LLAVE_OFF           !digitalRead(LLAVE)
 #define RESET_PRESIONADO    digitalRead(BUTTON_RESET)
+#define PRENDER_MOTOR       digitalWrite(CONTACTOR, LOW);
+#define APAGAR_MOTOR        digitalWrite(CONTACTOR, HIGH);
 
 // Tiempos
 #define STOP_TIMEOUT    600000                //600000 (10 min) (1 - 1ms) Tiempo maximo en funcionamiento continuo
@@ -179,7 +181,7 @@ void update_estado() {
           fix=0;
         }
         else motorCount = 0;
-        digitalWrite(CONTACTOR, HIGH);
+        PRENDER_MOTOR
         digitalWrite(LED_OFF, LOW);
         digitalWrite(LED_ON, HIGH);
       }
@@ -209,7 +211,7 @@ void update_estado() {
 
    // Si el compresor supero el tiempo maximo de funcionamiento continuo
    case STOP:
-      digitalWrite(CONTACTOR, LOW);
+      APAGAR_MOTOR
       digitalWrite(LED_OFF, LOW);
       ledCount++;
       if(ledCount == 50) {
@@ -234,7 +236,7 @@ void update_estado() {
    // Si el compresor supero el tiempo maximo de funcionamiento
    case SERVICE:
       static boolean text_flash = false;
-      digitalWrite(CONTACTOR, LOW);
+      APAGAR_MOTOR
       ledCount++;
       if(ledCount == 50) {
         ledCount = 0;
@@ -261,7 +263,7 @@ void update_estado() {
    // Si la llave esta apagada
    case OFF:
       analogWrite(BACKLIGHT,10);
-      digitalWrite(CONTACTOR, LOW);
+      APAGAR_MOTOR
       digitalWrite(LED_OFF, HIGH);
       digitalWrite(LED_ON, LOW);
       if(LLAVE_ON) {
@@ -301,7 +303,7 @@ void update_estado() {
     motorCount = 0;
     motorServiceCount = 0;
     digitalWrite(BACKLIGHT, HIGH);
-    digitalWrite(CONTACTOR, LOW);
+    APAGAR_MOTOR
     digitalWrite(LED_OFF, HIGH);
     digitalWrite(LED_ON, HIGH);
     for(uint8_t i = 0; i < 2; i++) {
@@ -334,7 +336,7 @@ void save_sd() {
     lcd.setCursor(0,1);
     lcd.print("el archivo en SD");
     digitalWrite(BACKLIGHT, HIGH);
-    digitalWrite(CONTACTOR, LOW);
+    APAGAR_MOTOR
     digitalWrite(LED_OFF, HIGH);
     digitalWrite(LED_ON, LOW);
     motorCount = 0;
@@ -539,5 +541,5 @@ void pin_init() {
   digitalWrite(BACKLIGHT, HIGH);
   digitalWrite(LED_OFF, HIGH);
   digitalWrite(LED_ON, LOW);
-  digitalWrite(CONTACTOR, LOW);
+  APAGAR_MOTOR
 }
